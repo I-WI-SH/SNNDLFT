@@ -2351,6 +2351,7 @@ class Trainer:
         logger.info(f"  Total optimization steps = {max_steps:,}")
         logger.info(f"  Number of trainable parameters = {get_model_param_count(model, trainable_only=True):,}")
         
+        assert max_steps >  model.base_model.peft_config[model.base_model.trainable_adapter_name].tinit, "Total traing step is less than rank allocate needs step"
         # config adarank total step
         model.base_model.peft_config[model.base_model.trainable_adapter_name].total_step = max_steps
         self.state.epoch = 0
@@ -2571,7 +2572,7 @@ class Trainer:
                             if getattr(model.base_model, "update_and_allocate", None) is not None:
                                 # import pdb
                                 # pdb.set_trace()
-                                layers_firing_rate, layers_ipt, combined_ipt_layers, rank_pattern = model.base_model.update_and_allocate(total_batched_samples)
+                                layers_firing_rate, layers_ipt, combined_ipt_layers, rank_pattern = model.base_model.update_and_allocate(total_batched_samples, self.finetuning_args.layer_wise)
                                 
                                 if layers_firing_rate is not None and total_batched_samples % self.finetuning_args.deltaT == 0:
                                         

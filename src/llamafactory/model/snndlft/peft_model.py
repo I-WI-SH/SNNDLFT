@@ -79,7 +79,6 @@ from peft.utils import (
 )
 from .model import SNNAdaLoraModel
 
-
 PEFT_TYPE_TO_MODEL_MAPPING = {
     PeftType.LORA: LoraModel,
     PeftType.LOHA: LoHaModel,

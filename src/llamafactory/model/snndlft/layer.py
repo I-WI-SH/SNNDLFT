@@ -241,7 +241,7 @@ class DLRankAllocator:
         sum_ipt = ipt_E.view(-1) + ipt_AB.view(-1)
         return sum_ipt
 
-    def mask_to_budget(self, model, budget):
+    def mask_to_budget(self, model, budget, layer_wise):
         value_ipt = {}
         vector_ipt = {}
         triplet_ipt = {}
@@ -305,7 +305,7 @@ class DLRankAllocator:
             sublist = layers_firing_rate[i]
             layers_firing_rate[i] = sum(sublist) / len(sublist) if sublist else 0.0
         
-        combined_ipt_layers = self.layer_wise_training(model, layers_ipt, layers_firing_rate)
+        combined_ipt_layers = self.layer_wise_training(model, layers_ipt, layers_firing_rate, layer_wise)
         # logger.info(f"After layer-wise choose remain traing Params: {train_params}")
 
         # Get the threshold by ranking ipt
@@ -326,7 +326,7 @@ class DLRankAllocator:
         return rank_pattern, layers_firing_rate, layers_ipt, combined_ipt_layers
 
     
-    def layer_wise_training(self, model, layers_ipt:list, layers_firing_rate:list):
+    def layer_wise_training(self, model, layers_ipt:list, layers_firing_rate:list, layer_wise):
 
         w1 = 0.3
         w2 = 0.7
@@ -339,9 +339,10 @@ class DLRankAllocator:
                 return np.array(lst)
 
         combined_ipt_list = w1 * min_max_normalize(layers_ipt)  + w2 * min_max_normalize(layers_firing_rate)
-
-        combined_ipt_layers = sorted(range(len(combined_ipt_list)), key=lambda i: combined_ipt_list[i], reverse=True)[:1]
-        # combined_ipt_layers = sorted(range(len(combined_ipt_list)), key=lambda i: combined_ipt_list[i], reverse=True)[:(model.config.num_hidden_layers//2)]
+        if layer_wise == 'single':
+            combined_ipt_layers = sorted(range(len(combined_ipt_list)), key=lambda i: combined_ipt_list[i], reverse=True)[:1]
+        else:
+            combined_ipt_layers = sorted(range(len(combined_ipt_list)), key=lambda i: combined_ipt_list[i], reverse=True)[:(model.config.num_hidden_layers//2)]
 
         traing_sum_param = 0 
         
@@ -371,7 +372,7 @@ class DLRankAllocator:
         return combined_ipt_layers
         
         
-    def update_and_allocate(self, model, global_step, force_mask=False):
+    def update_and_allocate(self, model, global_step, layer_wise, force_mask=False):
         # import pdb
         # pdb.set_trace()
         # # Update the importance score and allocate the budget
@@ -380,7 +381,7 @@ class DLRankAllocator:
         budget, mask_ind = self.budget_schedule(global_step)
         # Allocate the budget according to importance scores
         if mask_ind or force_mask:
-            rank_pattern, layers_firing_rate, layers_ipt, combined_ipt_layers = self.mask_to_budget(model, budget)
+            rank_pattern, layers_firing_rate, layers_ipt, combined_ipt_layers = self.mask_to_budget(model, budget, layer_wise)
         else:
             rank_pattern = None
             layers_firing_rate = None 

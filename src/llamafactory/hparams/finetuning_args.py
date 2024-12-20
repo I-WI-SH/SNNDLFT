@@ -343,6 +343,10 @@ class FinetuningArguments(FreezeArguments, LoraArguments, RLHFArguments, GaloreA
         default=0,
         metadata={"help":"Initial training step"}
     ),
+    layer_wise: Literal["single", "half"] = field(
+        default="half",
+        metadata={"help": "Training strategy during SNNDLFT."},
+    )
     use_llama_pro: bool = field(
         default=False,
         metadata={"help": "Whether or not to make only the parameters in the expanded blocks trainable."},
@@ -410,6 +414,7 @@ class FinetuningArguments(FreezeArguments, LoraArguments, RLHFArguments, GaloreA
         assert self.finetuning_type in ["lora", "freeze", "full", "adalora", "eqft", "snndlft"]
         assert self.ref_model_quantization_bit in [None, 8, 4], "We only accept 4-bit or 8-bit quantization."
         assert self.reward_model_quantization_bit in [None, 8, 4], "We only accept 4-bit or 8-bit quantization."
+        assert self.layer_wise in ["half", "single"], "SNNDLFT now only support half or single layer dynamic choosing traing"
 
         if self.stage == "ppo" and self.reward_model is None:
             raise ValueError("`reward_model` is necessary for PPO training.")
